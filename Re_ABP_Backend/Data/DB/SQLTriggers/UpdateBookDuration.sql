@@ -1,5 +1,7 @@
+DROP TRIGGER IF EXISTS UpdateBookDuration;
+GO
 CREATE TRIGGER UpdateBookDuration
-ON BookAudioFile
+ON dbo.BookAudioFile
 AFTER INSERT, UPDATE, DELETE
 AS
 BEGIN
@@ -28,3 +30,4 @@ BEGIN
     FROM AudioBook ab
     WHERE ab.Id IN (SELECT Id FROM @AudioBookIds);
 END;
+GO

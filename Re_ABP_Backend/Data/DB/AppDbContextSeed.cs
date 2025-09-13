@@ -1,134 +1,193 @@
-﻿using Re_ABP_Backend.Data.Dtos.AuthDtos;
+﻿using Microsoft.EntityFrameworkCore;
+using Re_ABP_Backend.Data.Dtos.AuthDtos;
 using Re_ABP_Backend.Data.Entities;
 using Re_ABP_Backend.Data.Entities.Identity;
 using Re_ABP_Backend.Data.Interfraces;
-using Re_ABP_Backend.Data.Services;
+using Re_ABP_Backend.Extensions;
+using Serilog;
 using System.Text.Json;
 
 namespace Re_ABP_Backend.Data.DB
 {
-    public class AppDbContextSeed
+    public static class AppDbContextSeed
     {
         public static async Task SeedAsync(AppDBContext context, IUserService userService)
         {
-            if (!context.Genre.Any())
+            var triggerDir = Path.Combine(AppContext.BaseDirectory, "Data", "DB", "SQLTriggers");
+            var triggersExist = await context.Database.ExecuteSqlRawAsync("SELECT COUNT(*) FROM sys.triggers") > 0;
+
+            if (!triggersExist)
             {
-                var genressData = File.ReadAllText("Data/DB/SeedDB/genres.json");
-                var genres = JsonSerializer.Deserialize<List<Genre>>(genressData);
-                context.Genre.AddRange(genres);
-                await context.SaveChangesAsync();
+                Log.Information("Start trigger creating");
+                await context.ExecuteSqlScriptsFromFolderAsync(triggerDir);
+            }
+            else
+            {
+                Log.Information("Triggers already exist, skipping trigger creation.");
             }
 
-            if (!context.BookLanguage.Any())
+            async Task<List<T>?> LoadJsonAsync<T>(string fileName)
             {
-                var booklanguageData = File.ReadAllText("Data/DB/SeedDB/bookLanguages.json");
-                var booklanguage = JsonSerializer.Deserialize<List<BookLanguage>>(booklanguageData);
-                context.BookLanguage.AddRange(booklanguage);
-                await context.SaveChangesAsync();
+                var filePath = Path.Combine(AppContext.BaseDirectory, "Data", "DB", "SeedDB", fileName);
+                if (!File.Exists(filePath))
+                {
+                    Log.Error("Seed file not found: {FilePath}", filePath);
+                    return null;
+                }
+
+                var data = await File.ReadAllTextAsync(filePath);
+                return JsonSerializer.Deserialize<List<T>>(data);
             }
 
-            if (!context.Narrator.Any())
+            // Seed Genre
+            if (!await context.Genre.AnyAsync())
             {
-                var narratorsData = File.ReadAllText("Data/DB/SeedDB/narrators.json");
-                var narrators = JsonSerializer.Deserialize<List<Narrator>>(narratorsData);
-                context.Narrator.AddRange(narrators);
-                await context.SaveChangesAsync();
+                var genres = await LoadJsonAsync<Genre>("genres.json");
+                if (genres != null)
+                {
+                    context.Genre.AddRange(genres);
+                    await context.SaveChangesAsync();
+                }
             }
 
-            if (!context.BookSeries.Any())
+            // Seed BookLanguage
+            if (!await context.BookLanguage.AnyAsync())
             {
-                var bookseriesData = File.ReadAllText("Data/DB/SeedDB/bookseries.json");
-                var bookseries = JsonSerializer.Deserialize<List<BookSeries>>(bookseriesData);
-                context.BookSeries.AddRange(bookseries);
-                await context.SaveChangesAsync();
+                var bookLanguages = await LoadJsonAsync<BookLanguage>("bookLanguages.json");
+                if (bookLanguages != null)
+                {
+                    context.BookLanguage.AddRange(bookLanguages);
+                    await context.SaveChangesAsync();
+                }
             }
 
-            if (!context.Author.Any())
+            // Seed Narrator
+            if (!await context.Narrator.AnyAsync())
             {
-                var authorsData = File.ReadAllText("Data/DB/SeedDB/authors.json");
-                var authors = JsonSerializer.Deserialize<List<Author>>(authorsData);
-                context.Author.AddRange(authors);
-                await context.SaveChangesAsync();
+                var narrators = await LoadJsonAsync<Narrator>("narrators.json");
+                if (narrators != null)
+                {
+                    context.Narrator.AddRange(narrators);
+                    await context.SaveChangesAsync();
+                }
             }
 
-            if (!context.AudioBook.Any())
+            // Seed BookSeries
+            if (!await context.BookSeries.AnyAsync())
             {
-                var audioBooksData = File.ReadAllText("Data/DB/SeedDB/audiobooks.json");
-                var audiobooks = JsonSerializer.Deserialize<List<AudioBook>>(audioBooksData);
-                context.AudioBook.AddRange(audiobooks);
-                await context.SaveChangesAsync();
+                var series = await LoadJsonAsync<BookSeries>("bookseries.json");
+                if (series != null)
+                {
+                    context.BookSeries.AddRange(series);
+                    await context.SaveChangesAsync();
+                }
             }
 
-            if (!context.AudioBookAuthor.Any())
+            // Seed Author
+            if (!await context.Author.AnyAsync())
             {
-                var audioBooksAuthorData = File.ReadAllText("Data/DB/SeedDB/audiobooks-authors.json");
-                var audioBooksAthors = JsonSerializer.Deserialize<List<AudioBookAuthor>>(audioBooksAuthorData);
-                context.AudioBookAuthor.AddRange(audioBooksAthors);
-                await context.SaveChangesAsync();
+                var authors = await LoadJsonAsync<Author>("authors.json");
+                if (authors != null)
+                {
+                    context.Author.AddRange(authors);
+                    await context.SaveChangesAsync();
+                }
             }
 
-            if (!context.AudioBookGenre.Any())
+            // Seed AudioBook
+            if (!await context.AudioBook.AnyAsync())
             {
-                var audioBooksGenresDat = File.ReadAllText("Data/DB/SeedDB/audiobooks-genres.json");
-                var audioBookGenre = JsonSerializer.Deserialize<List<AudioBookGenre>>(audioBooksGenresDat);
-                context.AudioBookGenre.AddRange(audioBookGenre);
-                await context.SaveChangesAsync();
+                var audiobooks = await LoadJsonAsync<AudioBook>("audiobooks.json");
+                if (audiobooks != null)
+                {
+                    context.AudioBook.AddRange(audiobooks);
+                    await context.SaveChangesAsync();
+                }
             }
 
-            if (!context.BookAudioFile.Any())
+            // Seed AudioBookAuthor
+            if (!await context.AudioBookAuthor.AnyAsync())
             {
-                var audioFilesData = File.ReadAllText("Data/DB/SeedDB/audioFiles.json");
-                var audioFiles = JsonSerializer.Deserialize<List<BookAudioFile>>(audioFilesData);
-                context.BookAudioFile.AddRange(audioFiles);
-                await context.SaveChangesAsync();
+                var abAuthors = await LoadJsonAsync<AudioBookAuthor>("audiobooks-authors.json");
+                if (abAuthors != null)
+                {
+                    context.AudioBookAuthor.AddRange(abAuthors);
+                    await context.SaveChangesAsync();
+                }
             }
 
-            if (!context.BookSelection.Any())
+            // Seed AudioBookGenre
+            if (!await context.AudioBookGenre.AnyAsync())
             {
-                var bookSelection = File.ReadAllText("Data/DB/SeedDB/selections.json");
-                var bookSelections = JsonSerializer.Deserialize<List<BookSelection>>(bookSelection);
-                context.BookSelection.AddRange(bookSelections);
-                await context.SaveChangesAsync();
+                var abGenres = await LoadJsonAsync<AudioBookGenre>("audiobooks-genres.json");
+                if (abGenres != null)
+                {
+                    context.AudioBookGenre.AddRange(abGenres);
+                    await context.SaveChangesAsync();
+                }
             }
 
-            if (!context.AudioBookSelection.Any())
+            // Seed BookAudioFile
+            if (!await context.BookAudioFile.AnyAsync())
             {
-                var bookSelection_audiobook = File.ReadAllText("Data/DB/SeedDB/bookselections_books.json");
-                var bookSelections_audiobook = JsonSerializer.Deserialize<List<AudioBookSelection>>(bookSelection_audiobook);
-                context.AudioBookSelection.AddRange(bookSelections_audiobook);
-                await context.SaveChangesAsync();
+                var audioFiles = await LoadJsonAsync<BookAudioFile>("audioFiles.json");
+                if (audioFiles != null)
+                {
+                    context.BookAudioFile.AddRange(audioFiles);
+                    await context.SaveChangesAsync();
+                }
             }
 
-            if (!context.LibraryStatus.Any())
+            // Seed BookSelection
+            if (!await context.BookSelection.AnyAsync())
             {
-                var libraryStatus = File.ReadAllText("Data/DB/SeedDB/libraryStatus.json");
-                var libraryStatuses = JsonSerializer.Deserialize<List<LibraryStatus>>(libraryStatus);
-                context.LibraryStatus.AddRange(libraryStatuses);
-                await context.SaveChangesAsync();
+                var selections = await LoadJsonAsync<BookSelection>("selections.json");
+                if (selections != null)
+                {
+                    context.BookSelection.AddRange(selections);
+                    await context.SaveChangesAsync();
+                }
             }
 
-            if (!context.Role.Any())
+            // Seed AudioBookSelection
+            if (!await context.AudioBookSelection.AnyAsync())
             {
-                var role = File.ReadAllText("Data/DB/SeedDB/roles.json");
-                var roles = JsonSerializer.Deserialize<List<Role>>(role);
-                context.Role.AddRange(roles);
-                await context.SaveChangesAsync();
+                var abSelections = await LoadJsonAsync<AudioBookSelection>("bookselections_books.json");
+                if (abSelections != null)
+                {
+                    context.AudioBookSelection.AddRange(abSelections);
+                    await context.SaveChangesAsync();
+                }
             }
 
-            if (!context.User.Any())
+            // Seed LibraryStatus
+            if (!await context.LibraryStatus.AnyAsync())
+            {
+                var libraryStatuses = await LoadJsonAsync<LibraryStatus>("libraryStatus.json");
+                if (libraryStatuses != null)
+                {
+                    context.LibraryStatus.AddRange(libraryStatuses);
+                    await context.SaveChangesAsync();
+                }
+            }
+
+            // Seed Role
+            if (!await context.Role.AnyAsync())
+            {
+                var roles = await LoadJsonAsync<Role>("roles.json");
+                if (roles != null)
+                {
+                    context.Role.AddRange(roles);
+                    await context.SaveChangesAsync();
+                }
+            }
+
+            // Seed Users
+            if (!await context.User.AnyAsync())
             {
                 var usernames = new string[]
                 {
-                    "Taras",
-                    "John",
-                    "Alice",
-                    "Bob",
-                    "Eva",
-                    "Alex",
-                    "Olivia",
-                    "Daniel",
-                    "Sophia",
-                    "William"
+                    "Taras","John","Alice","Bob","Eva","Alex","Olivia","Daniel","Sophia","William"
                 };
 
                 for (int i = 0; i < 10; i++)
@@ -146,14 +205,16 @@ namespace Re_ABP_Backend.Data.DB
                 }
             }
 
-            if (!context.Review.Any())
+            // Seed Review
+            if (!await context.Review.AnyAsync())
             {
-                var review = File.ReadAllText("Data/DB/SeedDB/reviews.json");
-                var reviews = JsonSerializer.Deserialize<List<Review>>(review);
-                context.Review.AddRange(reviews);
-                await context.SaveChangesAsync();
+                var reviews = await LoadJsonAsync<Review>("reviews.json");
+                if (reviews != null)
+                {
+                    context.Review.AddRange(reviews);
+                    await context.SaveChangesAsync();
+                }
             }
-
         }
     }
 }

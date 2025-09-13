@@ -1,5 +1,7 @@
+DROP TRIGGER IF EXISTS UpdateAudioBookRating;
+GO
 CREATE TRIGGER UpdateAudioBookRating
-ON Review
+ON dbo.Review
 AFTER INSERT, UPDATE, DELETE
 AS
 BEGIN
@@ -27,3 +29,4 @@ BEGIN
     WHERE EXISTS (SELECT 1 FROM inserted i WHERE i.AudioBookId = a.Id)
        OR EXISTS (SELECT 1 FROM deleted d WHERE d.AudioBookId = a.Id);
 END;
+GO

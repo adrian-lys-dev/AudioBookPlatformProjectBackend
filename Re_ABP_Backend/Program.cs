@@ -5,6 +5,7 @@ using Re_ABP_Backend.Data.Interfraces;
 using Re_ABP_Backend.Exntensions;
 using Re_ABP_Backend.Extensions;
 using Re_ABP_Backend.Middleware;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 ConfigurationManager configuration = builder.Configuration;
@@ -53,6 +54,7 @@ var services = scope.ServiceProvider;
 var context = services.GetRequiredService<AppDBContext>();
 var userService = services.GetRequiredService<IUserService>();
 var logger = services.GetRequiredService<ILogger<Program>>();
+
 try
 {
     await context.Database.MigrateAsync();
@@ -60,7 +62,8 @@ try
 }
 catch (Exception ex)
 {
-    logger.LogError(ex, "An error occured during migration");
+    logger.LogError(ex, "An error occurred during migration or trigger execution");
 }
+
 
 app.Run();

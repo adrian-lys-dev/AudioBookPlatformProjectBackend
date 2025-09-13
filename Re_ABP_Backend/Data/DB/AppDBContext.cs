@@ -1,9 +1,8 @@
-﻿using Re_ABP_Backend.Data.Entities;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using System.Reflection;
+﻿using Microsoft.EntityFrameworkCore;
+using Re_ABP_Backend.Data.Entities;
 using Re_ABP_Backend.Data.Entities.Base;
 using Re_ABP_Backend.Data.Entities.Identity;
+using System.Reflection;
 
 namespace Re_ABP_Backend.Data.DB
 {
@@ -49,13 +48,13 @@ namespace Re_ABP_Backend.Data.DB
                 .Where(e => typeof(BaseEntity).IsAssignableFrom(e.ClrType));
 
             // Set default for every entity
-            foreach (var entityType in entityTypes)
+            foreach (var clrType in entityTypes.Select(e => e.ClrType))
             {
-                modelBuilder.Entity(entityType.ClrType)
+                modelBuilder.Entity(clrType)
                     .Property("CreatedAt")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                modelBuilder.Entity(entityType.ClrType)
+                modelBuilder.Entity(clrType)
                     .Property("UpdatedAt")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
             }
