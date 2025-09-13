@@ -5,11 +5,9 @@ using Re_ABP_Backend.Data.Interfraces;
 using Re_ABP_Backend.Exntensions;
 using Re_ABP_Backend.Extensions;
 using Re_ABP_Backend.Middleware;
-using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 ConfigurationManager configuration = builder.Configuration;
-
 
 builder.Services.Configure<AppSettings>(
     builder.Configuration.GetSection("ApplicationSettings"));

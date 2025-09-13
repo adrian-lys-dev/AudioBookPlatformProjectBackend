@@ -179,7 +179,9 @@ namespace Re_ABP_Backend.Data.Services
                     RoleId = 2,
                     About = string.Empty
                 };
-                if (model.Password.IsNullOrEmpty()) user.SocialAuth = true;
+
+                if (string.IsNullOrEmpty(model.Password))
+                    user.SocialAuth = true;
 
                 await _context.User.AddAsync(user);
                 await _context.SaveChangesAsync();
@@ -191,6 +193,7 @@ namespace Re_ABP_Backend.Data.Services
                 return false;
             }
         }
+
 
         public async Task<bool> EditUserAsync(UserDto user)
         {
